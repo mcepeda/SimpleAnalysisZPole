@@ -1,0 +1,20 @@
+universe = vanilla
+
+executable = run_makeAFBPlots_onefile.sh
+
+arguments = $(inputfile) $(jobid) $(outputdir) 
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+transfer_input_files =   analysisGENFromTREE.py
+
+transfer_output_files = ""
+
+output = condor_logs/job_$(jobid).out
+error  = condor_logs/job_$(jobid).err
+log    = condor_logs/job_$(jobid).log
+
++JobFlavour = "longlunch"
+
+queue inputfile,jobid,outputdir from joblist.txt
