@@ -51,7 +51,12 @@ def wVariab(genTauP4,genRhoP4,genPionP4,beamE, testAtau=0):
     gen_cosBeta = math.cos( gen_beta)
     #print (theta_Rho,z)
 
-    cosPsi= (x * (mtau*mtau + mRho*mRho) - 2*mRho*mRho)/((mtau*mtau-mRho*mRho)*math.sqrt(x*x-4*mRho*mRho/sqrts/sqrts))
+#    cosPsi= (x * (mtau*mtau + mRho*mRho) - 2*mRho*mRho)/((mtau*mtau-mRho*mRho)*math.sqrt(x*x-4*mRho*mRho/sqrts/sqrts))
+
+    Etau = genTauP4.E()
+    cosPsi = ( x*(mtau*mtau + mRho*mRho) - 2*mRho*mRho) / (    (mtau*mtau - mRho*mRho)    * math.sqrt(x*x - mRho*mRho/(Etau*Etau)))
+    # should be the same, avoiding to use Ebeam at gen level 
+
     if cosPsi>1:
        print ('What happened?', cosPsi)
        cosPsi=1

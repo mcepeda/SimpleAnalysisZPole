@@ -439,8 +439,8 @@ for event in reader.get("events"):
         genPion_0 = genTauConst_0[0]
         genPion_1 = genTauConst_1[0]
 
-        if (abs(genPion_0.getPDG())!=211 or abs(genPion_1.getPDG())!=211) 
-             printf ("Caution, constituents not ordered!! 0 is not a pion: ", genPion_0.getPDG(),genPion_1.getPDG())
+        if (abs(genPion_0.getPDG())!=211 or abs(genPion_1.getPDG())!=211): 
+             print ("Caution, constituents not ordered!! 0 is not a pion: ", genPion_0.getPDG(),genPion_1.getPDG())
 
         genPionP4_0 = make_pion_p4(genPion_0)
         genPionP4_1 = make_pion_p4(genPion_1)

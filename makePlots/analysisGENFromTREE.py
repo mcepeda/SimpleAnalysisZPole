@@ -205,7 +205,7 @@ for ev in tree:
 
     cosThetaMeson=math.cos(ev.genMesonTheta_minus)
 
-    Z=cosThetaHat
+#    Z=cosThetaHat
 
     z =  Z # cosThetaHat # cosTheta
     absz=abs(z)
