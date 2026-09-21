@@ -29,8 +29,8 @@ fileOut=TFile("BINED_templates_PY8WI23_GEN_LONG.root","RECREATE")
 #GENOmegaCosTheta_M1_TAUMINUS
 
 
-var="GENOmegaCosThetaMeson"
-#var="GENOmegaCosTheta"
+#var="GENOmegaCosThetaMeson"
+var="GENOmegaCosTheta"
 title="#omega_{#rho}"
 
 rebin=1
@@ -41,7 +41,7 @@ sample=["TAUMINUS","P1_TAUMINUS","M1_TAUMINUS"]
 color=[ROOT.kBlack,ROOT.kGreen+2,ROOT.kRed]
 sampleName=["SM","A_{#tau}=+1","A_{#tau}=-1"]
 
-nBins=40  
+nBins=50  
 binLength=100/nBins
 
 for bin in range(0,nBins):

@@ -63,11 +63,7 @@ def newAtau(TauP4, MesonP4,Type,New_Atau):
      elif (Type==10):
           alpha= 0.12
 
-     #weight_Pnew = (1+ alpha*Pnew*z ) /(1+alpha*Ptau_sm*z)
-     num=(1+ alpha*Pnew*z+3/8*(1+z**2)+AFB*z ) 
-     den = (1+ alpha*Ptau_sm*z +3/8*(1+z**2)+AFB_sm*z ) 
-
-     weight_Pnew = num/den
+     weight_Pnew = (1+ alpha*Pnew*z ) /(1+alpha*Ptau_sm*z)
      return weight_Pnew
 
     elif (Type==-11 or Type==-13):

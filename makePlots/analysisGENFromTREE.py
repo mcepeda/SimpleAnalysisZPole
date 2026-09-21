@@ -120,12 +120,12 @@ for charge in ["TAUMINUS", "TAUPLUS"]:
         add1(f"GENTauTheta{tag}_{charge}", 40, -3.2, 3.2)
         add1(f"GENTauPhi{tag}_{charge}", 40, -3.2, 3.2)
         add1(f"GENTauDecayMode{tag}_{charge}", 31, -15, 15)
-        add1Variab(f"GENAbsZ{tag}_{charge}", 20)#, 0, 1)
+        add1(f"GENAbsZ{tag}_{charge}", 20, 0, 1)
         add1Variab(f"GENFZ{tag}_{charge}", 20)# , 0, 0.5) 
         add1Variab(f"GENFZ_BW{tag}_{charge}", 20)#, 0, 0.5)
         add1Variab(f"GENFZ_FW{tag}_{charge}", 20)#, 0, 0.5)
-        add1Variab(f"GENAbsZ_BW{tag}_{charge}", 20)#, 0, 1)
-        add1Variab(f"GENAbsZ_FW{tag}_{charge}", 20)#, 0, 1) 
+        add1(f"GENAbsZ_BW{tag}_{charge}", 20, 0, 1)
+        add1(f"GENAbsZ_FW{tag}_{charge}", 20, 0, 1) 
 
         add1(f"GENFZFine{tag}_{charge}", 1000, 0, 0.5)
         add1(f"GENFZFine_BW{tag}_{charge}", 1000, 0, 0.5)
@@ -147,7 +147,7 @@ def build_p4(p, theta, phi, mass):
     return p4
 
 def dRAngle(p1,p2):
-   dphi=p1.Phi()-p2.Phi()
+   dphi=abs(p1.Phi()-p2.Phi())
    if (dphi>math.pi) : dphi=2*math.pi-dphi
    dtheta=p1.Theta()-p2.Theta()
    dR=math.sqrt(dtheta*dtheta+dphi*dphi)
@@ -189,7 +189,7 @@ for ev in tree:
     wP1 = ev.weight_P1_plus * ev.weight_P1_minus
     wM1 = ev.weight_M1_plus * ev.weight_M1_minus
 
-    AeSM=0.1498  #0.1472
+    AeSM=0.1472 # 0.1498  #0.1472
     AtauSM=AeSM
     New_Atau=1
     New_Ae= AeSM # New_Atau # AeSM
@@ -473,7 +473,7 @@ for ev in tree:
         h[f"GENOmegaCosThetaMeson_P1_{charge}"].Fill(w,cosThetaMeson,wP1)
         h[f"GENOmegaCosThetaMeson_M1_{charge}"].Fill(w,cosThetaMeson,wM1)
 
-        h[f"GENOmegaCosThetaHat_M1_{charge}"].Fill(w,cosThetaHat,wM1)
+        h[f"GENOmegaCosThetaHat_P1_{charge}"].Fill(w,cosThetaHat,wP1)
         h[f"GENOmegaCosThetaHat_M1_{charge}"].Fill(w,cosThetaHat,wM1)
 
         h[f"GENCosThetaStar_P1_{charge}"].Fill(cosThetaStar, wP1)

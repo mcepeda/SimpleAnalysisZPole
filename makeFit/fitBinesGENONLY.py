@@ -21,7 +21,7 @@ if force_perfect_agreement: tag="_perfect"
 filename="BINED_templates_PY8WI23_GEN_LONG.root"
 filenamePosHel=filename
 
-nBins=40
+nBins=50
 binSize=100./nBins
 rebin=1
 
@@ -87,8 +87,8 @@ def dofit(bin, fullRange=False):
         hist_data = hist_bg.Clone()
         hist_data.SetName("hist_data")
         ctheta=(vectorCosThetaMax[bin]+vectorCosThetaMin[bin])/2
-        Atautheo=0.14955426 #0.150
-        Aetheo=  0.14955426 # 0.150
+        Atautheo= 0.1472 # 0.14955426 #0.150
+        Aetheo=0.1472 #  0.14955426 # 0.150
         perfectPtau=-(Atautheo*(1+ctheta*ctheta)+2*Aetheo*ctheta) / (1+ctheta*ctheta + 2*Aetheo*Atautheo*ctheta)
         hist_data.Add(hist_p1,(1.+perfectPtau)/2) 
         hist_data.Add(hist_m1,(1.-perfectPtau)/2)
@@ -124,7 +124,7 @@ def dofit(bin, fullRange=False):
         val = 0.0
 
         startbin=hist_data.GetXaxis().FindBin(-1)
-        endbin=hist_data.GetXaxis().FindBin(1.4)
+        endbin=nbins # hist_data.GetXaxis().FindBin(1.4)
         for i in range(startbin,endbin+1):
             observed = hist_data.GetBinContent(i)
 

@@ -5,9 +5,6 @@ set -e
 INPUT="$1"
 JOBID="$2"
 OUTPUT_DIR="$3"
-CHANNEL="$4"
-PMAX="$5"
-MMAX="$6"
 
 FINAL_OUTPUT="${OUTPUT_DIR}/histos_${JOBID}.root"
 

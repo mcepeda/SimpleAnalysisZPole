@@ -80,6 +80,7 @@ else:
 
    path = "/pnfs/ciemat.es/data/cms/store/user/cepeda/FCC/FullSim/"
    dir_path = path + "/" + sample
+   filetemplate=args.filename
    badfiles = [-1]
    
    print(dir_path)
@@ -91,7 +92,7 @@ else:
        if i in badfiles:
            continue
    
-       filename = dir_path + "/" + file + "_{}.root".format(i)
+       filename = dir_path + "/" + filetemplate + "_{}.root".format(i)
    #    print(filename)
    
        my_file = Path(filename)
@@ -375,6 +376,7 @@ for event in reader.get("events"):
             if phoP4.P()>1:      
                #print (part.getPDG(), part.getGeneratorStatus(),part.getSimulatorStatus(),phoP4.P(),motherPDG,part.getMass())
                if phoP4.P()>highestPho:
+                   highestPho=phoP4.P()
                    phoSaveP4=phoP4
                    phoMom=motherPDG
                    phoStatusGen=part.getGeneratorStatus()
@@ -437,6 +439,9 @@ for event in reader.get("events"):
         genPion_0 = genTauConst_0[0]
         genPion_1 = genTauConst_1[0]
 
+        if (abs(genPion_0.getPDG())!=211 or abs(genPion_1.getPDG())!=211) 
+             printf ("Caution, constituents not ordered!! 0 is not a pion: ", genPion_0.getPDG(),genPion_1.getPDG())
+
         genPionP4_0 = make_pion_p4(genPion_0)
         genPionP4_1 = make_pion_p4(genPion_1)
 
@@ -478,7 +483,7 @@ for event in reader.get("events"):
 ################
         # Corrected Weight, only for rho 
 
-        AeSM=0.147
+        AeSM=0.1472 # corresponds to sin2thetaeff=0.2315, for pythia 
         AtauSM=AeSM
         New_Atau=1
         New_Ae= AeSM # New_Atau # AeSM

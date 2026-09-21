@@ -105,7 +105,7 @@ def visTauGen(candTau,Helicity=True):
 
 # I'm sure this exists already, clean
 def dRAngle(p1,p2):
-   dphi=p1.Phi()-p2.Phi()
+   dphi=abs(p1.Phi()-p2.Phi())
    if (dphi>math.pi) : dphi=2*math.pi-dphi
    dtheta=p1.Theta()-p2.Theta()
    dR=math.sqrt(dtheta*dtheta+dphi*dphi)

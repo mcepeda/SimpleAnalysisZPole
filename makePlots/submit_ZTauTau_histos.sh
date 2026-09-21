@@ -43,7 +43,6 @@ echo "============================================================"
 echo "Sample      : ${SAMPLE}"
 echo "Input dir   : ${INPUT_DIR}"
 echo "Output dir  : ${OUTPUT_DIR}"
-echo "Channel     : ${CHANNEL}"
 echo "Jobs        : ${N}"
 echo "============================================================"
 
