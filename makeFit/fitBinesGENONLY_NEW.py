@@ -170,19 +170,25 @@ def draw_omega_fit(hist_data, hist_minus, hist_plus, scale, pol, output_name, ti
     legend.AddEntry(hist_fit, "Fit", "l")
     legend.AddEntry(hist_minus_fit, "P_{#tau}=-1", "l")
     legend.AddEntry(hist_plus_fit, "P_{#tau}=+1", "l")
+
     legend.Draw()
 
     canvas.SaveAs(output_name)
     canvas.Close()
 
 
-def main(filename, nBins=50, rebin=1, outdir="plots_pol", use_likelihood=True, print_level=1):
+def main(filename, filenameData,nBins=50, rebin=1, outdir="plots_pol", lumi=67.7,  use_likelihood=True, print_level=1):
 
     os.makedirs(outdir, exist_ok=True)
 
     root_file = ROOT.TFile.Open(filename)
     if not root_file or root_file.IsZombie():
         raise RuntimeError("Cannot open " + filename)
+
+    root_file_data = ROOT.TFile.Open(filenameData)
+    if not root_file_data or root_file_data.IsZombie():
+        raise RuntimeError("Cannot open " + filenameData)
+
 
     bin_width = 2.0/nBins
 
@@ -198,7 +204,7 @@ def main(filename, nBins=50, rebin=1, outdir="plots_pol", use_likelihood=True, p
 
     hist_minus_full = clone_hist(root_file, "histo_P1_TAUMINUS_full", "minus_full")
     hist_plus_full = clone_hist(root_file, "histo_M1_TAUMINUS_full", "plus_full")
-    hist_data_full = clone_hist(root_file, "histo_TAUMINUS_full", "data_full")
+    hist_data_full = clone_hist(root_file_data, "histo_TAUMINUS_full", "data_full")
 
     if rebin > 1:
         hist_minus_full.Rebin(rebin)
@@ -257,7 +263,7 @@ def main(filename, nBins=50, rebin=1, outdir="plots_pol", use_likelihood=True, p
 
         hist_minus = clone_hist(root_file, "histo_P1_TAUMINUS" + bin_name, "minus_" + str(ibin))
         hist_plus = clone_hist(root_file, "histo_M1_TAUMINUS" + bin_name, "plus_" + str(ibin))
-        hist_data = clone_hist(root_file, "histo_TAUMINUS" + bin_name, "data_" + str(ibin))
+        hist_data = clone_hist(root_file_data, "histo_TAUMINUS" + bin_name, "data_" + str(ibin))
 
         if rebin > 1:
             hist_minus.Rebin(rebin)
@@ -302,34 +308,34 @@ def main(filename, nBins=50, rebin=1, outdir="plots_pol", use_likelihood=True, p
         chi2 = 0.0
         val = 0.0
 
-        for bin in range(nBins):
-
-            ctheta = 0.5*(vectorCosThetaMin[bin] + vectorCosThetaMax[bin])
-
-            observed = vectorPol[bin]
-            observed_err = vectorPolError[bin]
-
-            Atau = par[0]
-            Ae = par[1]
-
-            expected = -(Atau*(1 + ctheta*ctheta) + 2*Ae*ctheta) / \
-                       (1 + ctheta*ctheta + 2*Ae*Atau*ctheta)
-
-            if observed_err > 0:
-               val += ((observed - expected)/observed_err)**2
-
-        fval.value = val
+#        for bin in range(nBins):
+#
+#            ctheta = 0.5*(vectorCosThetaMin[bin] + vectorCosThetaMax[bin])
+#
+#            observed = vectorPol[bin]
+#            observed_err = vectorPolError[bin]
+#
+#            Atau = par[0]
+#            Ae = par[1]
+#
+#            expected = -(Atau*(1 + ctheta*ctheta) + 2*Ae*ctheta) / \
+#                       (1 + ctheta*ctheta + 2*Ae*Atau*ctheta)
+#
+#            if observed_err > 0:
+#               val += ((observed - expected)/observed_err)**2
+#
+#        fval.value = val
 
 #       Alternative: do not assume narrow bins 
-#        for ibin in range(nBins):
-#            observed = vectorPol[ibin]
-#            error = vectorPolError[ibin]
-#
-#            if error <= 0.0:
-#                continue
-#            expected = ptau_bin_average(vectorCosThetaMin[ibin], vectorCosThetaMax[ibin], Atau, Ae)
-#            chi2 += ((observed - expected)/error)**2
-#            fval.value = chi2
+        for ibin in range(nBins):
+            observed = vectorPol[ibin]
+            error = vectorPolError[ibin]
+
+            if error <= 0.0:
+                continue
+            expected = ptau_bin_average(vectorCosThetaMin[ibin], vectorCosThetaMax[ibin], Atau, Ae)
+            chi2 += ((observed - expected)/error)**2
+            fval.value = chi2
 
 
 
@@ -424,6 +430,7 @@ def main(filename, nBins=50, rebin=1, outdir="plots_pol", use_likelihood=True, p
     legend = ROOT.TLegend(0.55, 0.72, 0.88, 0.88)
     legend.SetBorderSize(0)
     legend.SetFillStyle(0)
+    legend.AddEntry("NULL","#sqrt{s}=91 GeV, %4.2f  fb^{-1}" %lumi ,"")
     legend.AddEntry(graph, "Extracted P_{#tau}", "pl")
     legend.AddEntry(fit_func, "Fit for A_{#tau}, A_{e}", "l")
     legend.Draw()
@@ -480,20 +487,26 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("-i", "--input", default="BINED_templates_PY8WI23_GEN_LONG.root")
+    parser.add_argument("-d", "--data", default="BINED_templates_PY8WI23_GEN_LONG.root")
+
     parser.add_argument("--nBins", type=int, default=50)
     parser.add_argument("--rebin", type=int, default=1)
     parser.add_argument("--chi2", action="store_true", help="Use chi2 instead of binned Poisson likelihood for omega fits")
     parser.add_argument("--print-level", type=int, default=1, help="TMinuit print level")
     parser.add_argument("-o", "--outdir", default="plots_pol")
+    parser.add_argument("-l", "--lumi", type=float, default=67.7)
+
 
     args = parser.parse_args()
 
     main(
         filename=args.input,
+        filenameData=args.data,
         nBins=args.nBins,
         rebin=args.rebin,
         outdir=args.outdir,
         use_likelihood=not args.chi2,
-        print_level=args.print_level
+        print_level=args.print_level,
+        lumi=args.lumi
     )
 

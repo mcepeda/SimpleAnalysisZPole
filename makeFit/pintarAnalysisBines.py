@@ -7,30 +7,28 @@ ROOT.gStyle.SetOptStat(0)
 MESON="#rho (2#gamma)"
 cuts="GEN" #2_0.1_2"
 
-NGEN=100e6 # 8338055  #1000*1000 #1000 files  #976000+9.99e5 
+file=TFile("../makePlots/histos_PY8GENWI23_test_changeAtau_dm1_1472_ONLYDECAYWEIGHT.root")
+fileOut=TFile("BINED_templates_PY8WI23_GEN_LONG.root","RECREATE")
+NGEN=100e6
+
+#file=TFile("../makePlots/histos_PY8GENNOISR_test_changeAtau_dm1_1472_WO_NOISRFSR.root")
+#fileOut=TFile("BINED_templates_PY8_GEN_2M_NOISRFSR.root","RECREATE")
+#NGEN=2e6
+
+#file=TFile("../makePlots/histos_KKMCee_changeAtau_dm1_1472_WO.root")
+#fileOut=TFile("BINED_templates_KKMCee_GEN_LONG.root","RECREATE")
+#NGEN=10e6
+
 xsec=1476.58*1000 # en fb
 lumi=NGEN/xsec/ 1000. # 17 ab-1
 scale= 1 # lumi*xsec/NGEN
 
-print (scale)
-
-#file=TFile("../makePlots/histos_KKM91p2_test_changeAtau_dm1.root")
-#file=TFile("../makePlots/histos_KKM90_test_changeAtau_dm1.root")
-#file=TFile("../makePlots/histos_PY8GENWI23_test_changeAtau_dm1.root")
-
-file=TFile("../makePlots/histos_PY8GENWI23_LONG_changeAtau_dm1_02315_v2.root")
-#file=TFile("../makePlots/histos_PY8GENWI23_LONG_changeAtau_dm1.root")
-#file=TFile("../makePlots/histos_PY8GENWI23_LONG_changeAtau_dm1_1498_v2.root")
-
-
-#fileOut=TFile("BINED_templates_KKMC91p2_GEN_Sept_1.root","RECREATE")
-#fileOut=TFile("BINED_templates_KKMC90_GEN_Sept_1.root","RECREATE")
-fileOut=TFile("BINED_templates_PY8WI23_GEN_LONG.root","RECREATE")
-#GENOmegaCosTheta_M1_TAUMINUS
-
+print ("LUMI: ", lumi*1000) 
 
 #var="GENOmegaCosThetaMeson"
-var="GENOmegaCosTheta"
+#var="GENOmegaCosTheta"
+var="GENOmegaCosThetaHat"
+
 title="#omega_{#rho}"
 
 rebin=1
@@ -41,7 +39,7 @@ sample=["TAUMINUS","P1_TAUMINUS","M1_TAUMINUS"]
 color=[ROOT.kBlack,ROOT.kGreen+2,ROOT.kRed]
 sampleName=["SM","A_{#tau}=+1","A_{#tau}=-1"]
 
-nBins=50  
+nBins=20  
 binLength=100/nBins
 
 for bin in range(0,nBins):
