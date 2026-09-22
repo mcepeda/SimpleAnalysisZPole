@@ -8,8 +8,10 @@ import numpy as np
 import sys 
 
 # Options
-force_perfect_agreement = True #False
+force_perfect_agreement = False
 use_likelihood = True
+
+A0 = 0.1472 # Reference, corresponds to sin2thetaeff=0.2315
 
 tag="_def"
 if force_perfect_agreement: tag="_perfect"
@@ -28,7 +30,7 @@ rebin=1
 NGEN=100e6#8338055 # 976000+9.99e5 
 xsec=1476.58*1000 # en fb
 lumi=NGEN/xsec  # 5.2 # fb-1  17. * 1000.  # 17 ab-1
-scale= 1 #   17000/lumi 
+scale=    17000/lumi 
 
 var="histo"
 title="#omega_{#rho}"
@@ -80,19 +82,24 @@ def dofit(bin, fullRange=False):
 
     print ("reading ",var+"_TAUMINUS"+binName)
 
+    I_p1 = hist_p1.Integral()
+    I_m1 = hist_m1.Integral()
 
+    # Consistency checks debugging Atau
+    print("RAW P1 =", I_p1)
+    print("RAW M1 =", I_m1)
+    print("M1/P1  =", I_m1/I_p1)
+    p_from_integrals = (    (1-A0)*I_m1 - (1+A0)*I_p1) / (    (1-A0)*I_m1 + (1+A0)*I_p1 )
+    print("P expected after independent normalization =", p_from_integrals)
 
     if force_perfect_agreement:
         # Force the sume to be "perfect"
         ctheta=(vectorCosThetaMax[bin]+vectorCosThetaMin[bin])/2
-        Atautheo= 0.1472 # 0.14955426 #0.150
-        Aetheo=0.1472 #  0.14955426 # 0.150
+        Atautheo=A0 # 0.14955426 #0.150
+        Aetheo=A0 #  0.14955426 # 0.150
         perfectPtau=-(Atautheo*(1+ctheta*ctheta)+2*Aetheo*ctheta) / (1+ctheta*ctheta + 2*Aetheo*Atautheo*ctheta)
 #        hist_data.Add(hist_p1,(1.+perfectPtau)/2) 
 #        hist_data.Add(hist_m1,(1.-perfectPtau)/2)
-        I_p1 = hist_p1.Integral()
-        I_m1 = hist_m1.Integral()
-
         Ndata = hist_sm.Integral()
 
         hist_data = hist_bg.Clone()
@@ -117,10 +124,13 @@ def dofit(bin, fullRange=False):
     print("hist_bg entries: %s, hist_m1 entries: %s, hist_p1 entries %a" % (hist_bg.Integral(),hist_m1.Integral(),hist_p1.Integral()))
 
     hist_data.Scale(scale)
-    hist_bg.Scale(scale) # fixed
+    hist_bg.Scale(scale) 
 
-    hist_m1.Scale(1./hist_m1.Integral())
-    hist_p1.Scale(1./hist_p1.Integral())
+    hist_m1.Scale(scale)
+    hist_p1.Scale(scale)
+
+#    hist_m1.Scale(1./hist_m1.Integral())
+#    hist_p1.Scale(1./hist_p1.Integral())
 
     # Ensure histograms have the same binning
     nbins = hist_data.GetNbinsX()
@@ -133,12 +143,12 @@ def dofit(bin, fullRange=False):
     def my_minimization(npar, gin, f, par, iflag):
         val = 0.0
 
-        startbin=hist_data.GetXaxis().FindBin(-1)
-        endbin=nbins # avoid the overflow bin,  hist_data.GetXaxis().FindBin(1.4)
+        startbin=1 # hist_data.GetXaxis().FindBin(-1)
+        endbin=nbins+1 # avoid the overflow bin,  hist_data.GetXaxis().FindBin(1.4)
         for i in range(startbin,endbin+1):
             observed = hist_data.GetBinContent(i)
 
-            bg= hist_bg.GetBinContent(i)
+            bg= 0 #hist_bg.GetBinContent(i)
             # There is some ambiguity in what I am calling +1 and -1 
             # remember Poltau=-Atau
             Nm1= (1-par[1])/2 * hist_m1.GetBinContent(i)
@@ -165,11 +175,11 @@ def dofit(bin, fullRange=False):
     norm=hist_data.Integral()
 
     # Set initial parameters and limits
-    start_vals = [norm, 0.130]  # Initial guesses for param factors [bg_scale, m1_scale, p1_scale]
-    step_sizes = [0.01, 0.0001]
+    start_vals = [1, -0.140]  # Initial guesses for param factors [bg_scale, m1_scale, p1_scale]
+    step_sizes = [0.0001, 0.0001]
     param_names = ["scale", "pol"]
 
-    minuit.DefineParameter(0, param_names[0], start_vals[0], step_sizes[0], 0, 2*norm)
+    minuit.DefineParameter(0, param_names[0], start_vals[0], step_sizes[0], 0, 10)
     minuit.DefineParameter(1, param_names[1], start_vals[1], step_sizes[1], -1,1)
 
     # Perform the minimization
