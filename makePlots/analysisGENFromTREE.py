@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(
 #parser.add_argument("-f", "--sample", default="../makeTrees/TREE_KKMCee_ONLYSIM_10M_90GeV_V2_partial.root")
 #parser.add_argument("-o", "--outfile", default="histos_KKM90_test_changeAtau_dm1.root")
 
-parser.add_argument("-f", "--sample", default="../makeTrees/TREE_p8_ee_Ztautau_ecm91_V2_partial.root")
+parser.add_argument("-f", "--sample", default="../makeTrees/TREE_p8_ee_Ztautau_ecm91_WEIGHTOLMO_V4/tree_081316103.root")
 parser.add_argument("-o", "--outfile", default="histos_PY8GENWI23_test_changeAtau_dm1.root")
 parser.add_argument("-dP", "--decayP", default=1, type=int)
 parser.add_argument("-dM", "--decayM", default=1, type=int)
@@ -185,9 +185,11 @@ for ev in tree:
     if dmplus not in (-11,-13,0,1):
         continue
 
+    wP1 = ev.weight_P1_joint #weights from olmo
+    wM1 = ev.weight_M1_joint
 
-    wP1 = ev.weight_P1_plus * ev.weight_P1_minus
-    wM1 = ev.weight_M1_plus * ev.weight_M1_minus
+#    wP1 = ev.weight_P1_plus * ev.weight_P1_minus
+#    wM1 = ev.weight_M1_plus * ev.weight_M1_minus
 
     AeSM=0.1472 # 0.1498  #0.1472
     AtauSM=AeSM
@@ -231,8 +233,15 @@ for ev in tree:
     weightTestP1 = (angularP1 * decayP1) / denW
     weightTestM1 = (angularM1 * decayM1) / denW 
 
-    wP1=weightTestP1      
-    wM1=weightTestM1
+
+    weightTestP1DECAY =  decayP1 /decaySM
+    weightTestM1DECAY =  decayM1 /decaySM
+
+
+#    print (ev.weight_M1_joint, ev.weight_M1_corrangle, weightTestM1DECAY, weightTestM1)
+
+#    wP1=weightTestP1DECAY      
+#    wM1=weightTestM1DECAY
 
     tau_plus = build_p4(
         ev.genTauP_plus,

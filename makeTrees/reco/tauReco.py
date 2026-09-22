@@ -12,6 +12,8 @@ def visTauGen(candTau,Helicity=True):
         countMuonDecay=0
         countElectronDecay=0
         countOther=0
+        countEtaTauGen = 0 # added because of KKMC
+        countChargedKaons = 0 
 
         genTauP4=ROOT.TLorentzVector()
         genTauP4.SetXYZM(candTau.getMomentum().x,candTau.getMomentum().y,candTau.getMomentum().z,candTau.getMass())
@@ -63,10 +65,14 @@ def visTauGen(candTau,Helicity=True):
 
              # the tau decay directly goes to pi0/pi, without the rho/a1
              # if there was a rho, we would need an additional step  
-             if dauPDG==211 or dauPDG==321 or dauPDG==323:   # kaons and pions paired together 
+             if dauPDG==211:        
                 countPionsTauGen+=1
+             elif dauPDG==321 or dauPDG==323: # differentiating this at gen level, chasing closure
+                countChargedKaons+=1
              elif dauPDG==111 :
                 countPi0TauGen+=1
+             elif dauPDG==221:
+                countEtaTauGen+=1 
              elif dau.getCharge()!=0 and (dauPDG!=11 and dauPDG!=13):
                 print (dau.getPDG()) 
                 countOther+=1
@@ -95,10 +101,70 @@ def visTauGen(candTau,Helicity=True):
         elif countOther>0: # these are cases in which I found a kaon?
            tauID=-2
         elif abs(chargeTau)==1: # at gen level if this happens something failed
-           if (countPionsTauGen==1):
-                     tauID=countPi0TauGen
-           elif (countPionsTauGen==3):
-                     tauID=countPi0TauGen+10
+             # ------------------------------------------------
+             # one-prong pion + eta
+             # 20 = pi eta
+             # 21 = pi pi0 eta
+             # 22 = pi 2pi0 eta ...
+             # ------------------------------------------------
+             if (countPionsTauGen==1 and
+                 countChargedKaons==0 and
+                 countEtaTauGen>0):
+         
+                 tauID = 20 + countPi0TauGen
+         
+             # ------------------------------------------------
+             # one charged kaon
+             # 30 = K
+             # 31 = K pi0
+             # 32 = K 2pi0 ...
+             # ------------------------------------------------
+             elif (countChargedKaons==1 and
+                   countPionsTauGen==0 and
+                   countEtaTauGen==0):
+         
+                 tauID = 30 + countPi0TauGen
+         
+             # ------------------------------------------------
+             # charged kaon + eta
+             # 40 = K eta
+             # 41 = K pi0 eta
+             # 42 = K 2pi0 eta ...
+             # ------------------------------------------------
+             elif (countChargedKaons==1 and
+                   countPionsTauGen==0 and
+                   countEtaTauGen>0):
+         
+                 tauID = 40 + countPi0TauGen
+         
+             # ------------------------------------------------
+             # three charged kaons
+             # 50 = K K K
+             # 51 = K K K pi0 ...
+             # ------------------------------------------------
+             elif (countChargedKaons==3 and
+                   countPionsTauGen==0):
+         
+                 tauID = 50 + countPi0TauGen
+        
+             # 60... = K pi pi (+ n pi0)
+             elif countChargedKaons==1 and countPionsTauGen==2:
+                tauID = 60 + countPi0TauGen
+
+             # 70... = K K pi (+ n pi0)
+             elif countChargedKaons==2 and countPionsTauGen==1:
+                tauID = 70 + countPi0TauGen
+
+ 
+             # ------------------------------------------------
+             # standard pion modes
+             # ------------------------------------------------
+             elif countPionsTauGen==1 and countChargedKaons==0:
+                 tauID = countPi0TauGen
+         
+             elif countPionsTauGen==3 and countChargedKaons==0:
+                 tauID = 10 + countPi0TauGen
+
 
         # return an object with the visible pt, ID, charge, and the true Pt 
         return (visTauP4,tauID,chargeTau,genTauP4,maxAngleConsts,nConsts,const,genTauHelicity)                 

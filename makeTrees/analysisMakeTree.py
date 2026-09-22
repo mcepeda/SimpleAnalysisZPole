@@ -158,7 +158,8 @@ variabs += [
     "SpinWT",
     "SpinWThelApprox",
     "nPhotons",
-    "genPhotonP","genPhotonTheta","genPhotonPhi","genPhotonMom","genPhotonStatus", "weight_P1_corrangle","weight_M1_corrangle"
+    "genPhotonP","genPhotonTheta","genPhotonPhi","genPhotonMom","genPhotonStatus", "weight_P1_corrangle","weight_M1_corrangle",
+    "gen_cos_theta_hat","gen_cos_theta_tau"
 ]
 
 outfile = ROOT.TFile(fileOutName, "RECREATE")
@@ -439,8 +440,12 @@ for event in reader.get("events"):
         genPion_0 = genTauConst_0[0]
         genPion_1 = genTauConst_1[0]
 
-        if (abs(genPion_0.getPDG())!=211 or abs(genPion_1.getPDG())!=211): 
-             print ("Caution, constituents not ordered!! 0 is not a pion: ", genPion_0.getPDG(),genPion_1.getPDG())
+        if( (genTauID_0==1 and abs(genPion_0.getPDG())!=211)  ): 
+             print ("Caution, constituents not ordered!! 0 is not a pion: ", genPion_0.getPDG())
+
+        if( (genTauID_1==1 and abs(genPion_1.getPDG())!=211) ):
+             print ("Caution, constituents not ordered!! 0 is not a pion: ", genPion_1.getPDG())
+
 
         genPionP4_0 = make_pion_p4(genPion_0)
         genPionP4_1 = make_pion_p4(genPion_1)
@@ -506,9 +511,11 @@ for event in reader.get("events"):
          gen_w_plus=tau_dict_1["gen_w"]
       
 
-        cosThetaHat =  math.sin ( (genTauTheta_plus-genTauTheta_minus)/2 )/math.sin ( (genTauTheta_minus+genTauTheta_plus)/2 )
-        Z=cosThetaHat
+        gen_cos_theta_hat =  math.sin ( (genTauTheta_plus-genTauTheta_minus)/2 )/math.sin ( (genTauTheta_minus+genTauTheta_plus)/2 )
+        #Z=gen_cos_theta_hat
     
+        Z=math.cos(genTauTheta_minus) 
+
     #    New_AeM1=-1
     #    New_Ae=1
     
@@ -535,6 +542,8 @@ for event in reader.get("events"):
 
 ###############################3
 
+        branches["gen_cos_theta_hat"][0]=gen_cos_theta_hat
+        branches["gen_cos_theta_tau"][0]=genTauTheta_minus
 
         branches["GenZMass"][0] = safe_float(GenZMass)
         branches["GenZVisMass"][0] = safe_float(GenZVisMass)

@@ -8,7 +8,7 @@ import numpy as np
 import sys 
 
 # Options
-force_perfect_agreement =  False
+force_perfect_agreement = True #False
 use_likelihood = True
 
 tag="_def"
@@ -28,7 +28,7 @@ rebin=1
 NGEN=100e6#8338055 # 976000+9.99e5 
 xsec=1476.58*1000 # en fb
 lumi=NGEN/xsec  # 5.2 # fb-1  17. * 1000.  # 17 ab-1
-scale= 1 # 17000/lumi #*xsec/NGEN # already done in pintarAnalysisBines.py
+scale= 1 #   17000/lumi 
 
 var="histo"
 title="#omega_{#rho}"
@@ -84,14 +84,24 @@ def dofit(bin, fullRange=False):
 
     if force_perfect_agreement:
         # Force the sume to be "perfect"
-        hist_data = hist_bg.Clone()
-        hist_data.SetName("hist_data")
         ctheta=(vectorCosThetaMax[bin]+vectorCosThetaMin[bin])/2
         Atautheo= 0.1472 # 0.14955426 #0.150
         Aetheo=0.1472 #  0.14955426 # 0.150
         perfectPtau=-(Atautheo*(1+ctheta*ctheta)+2*Aetheo*ctheta) / (1+ctheta*ctheta + 2*Aetheo*Atautheo*ctheta)
-        hist_data.Add(hist_p1,(1.+perfectPtau)/2) 
-        hist_data.Add(hist_m1,(1.-perfectPtau)/2)
+#        hist_data.Add(hist_p1,(1.+perfectPtau)/2) 
+#        hist_data.Add(hist_m1,(1.-perfectPtau)/2)
+        I_p1 = hist_p1.Integral()
+        I_m1 = hist_m1.Integral()
+
+        Ndata = hist_sm.Integral()
+
+        hist_data = hist_bg.Clone()
+        hist_data.Reset()
+        hist_data.SetName("hist_data")
+        hist_data.Add(    hist_p1,    Ndata * (1. + perfectPtau) / (2. * I_p1))
+
+        hist_data.Add(hist_m1,    Ndata * (1. - perfectPtau) / (2. * I_m1) )
+
     else:
         # Use histogram ALL from generation
         hist_data  = hist_sm.Clone()   # generated SM
@@ -124,7 +134,7 @@ def dofit(bin, fullRange=False):
         val = 0.0
 
         startbin=hist_data.GetXaxis().FindBin(-1)
-        endbin=nbins # hist_data.GetXaxis().FindBin(1.4)
+        endbin=nbins # avoid the overflow bin,  hist_data.GetXaxis().FindBin(1.4)
         for i in range(startbin,endbin+1):
             observed = hist_data.GetBinContent(i)
 
