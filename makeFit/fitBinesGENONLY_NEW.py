@@ -72,7 +72,7 @@ def get_parameter(minuit, index):
     return value.value, error.value
 
 
-def fit_omega(hist_data, hist_minus, hist_plus, use_likelihood=True, print_level=1):
+def fit_omega(hist_data, hist_minus, hist_plus, use_likelihood=True, print_level=1, scale0=1):
     """
     Fit the omega distribution with
 
@@ -96,8 +96,10 @@ def fit_omega(hist_data, hist_minus, hist_plus, use_likelihood=True, print_level
 
         for i in range(1, nbins + 1):
             observed = hist_data.GetBinContent(i)
+
             n_minus = ((1.0 - pol)/2.0) * hist_minus.GetBinContent(i)
             n_plus = ((1.0 + pol)/2.0) * hist_plus.GetBinContent(i)
+
             expected = scale * (n_minus + n_plus)
 
             if expected <= 0.0:
@@ -114,7 +116,8 @@ def fit_omega(hist_data, hist_minus, hist_plus, use_likelihood=True, print_level
     minuit.SetFCN(fcn)
     minuit.SetPrintLevel(print_level)
 
-    minuit.DefineParameter(0, "scale", 1.0, 1e-4, 0.0, 10.0)
+    minuit.DefineParameter(0, "scale", scale0, max(scale0*1e-4, 1e-8), 0.0, 10.0*scale0)
+#    minuit.DefineParameter(0, "scale", 1.0, 1e-4, 0.0, 10.0)
     minuit.DefineParameter(1, "Ptau", -0.14, 1e-4, -1.0, 1.0)
 
     status = minuit.Command("MIGRAD")
@@ -177,7 +180,7 @@ def draw_omega_fit(hist_data, hist_minus, hist_plus, scale, pol, output_name, ti
     canvas.Close()
 
 
-def main(filename, filenameData,nBins=50, rebin=1, outdir="plots_pol", lumi=67.7,  use_likelihood=True, print_level=1):
+def main(filename, filenameData,nBins=50, rebin=1, outdir="plots_pol", lumi=67.7,  lumiTemplate=67.7, use_likelihood=True, print_level=1):
 
     os.makedirs(outdir, exist_ok=True)
 
@@ -224,7 +227,8 @@ def main(filename, filenameData,nBins=50, rebin=1, outdir="plots_pol", lumi=67.7
         hist_minus_full,
         hist_plus_full,
         use_likelihood=use_likelihood,
-        print_level=print_level
+        print_level=print_level,
+        scale0=lumi/lumiTemplate
     )
 
     Atau_inclusive = -Ptau_full
@@ -265,6 +269,11 @@ def main(filename, filenameData,nBins=50, rebin=1, outdir="plots_pol", lumi=67.7
         hist_plus = clone_hist(root_file, "histo_M1_TAUMINUS" + bin_name, "plus_" + str(ibin))
         hist_data = clone_hist(root_file_data, "histo_TAUMINUS" + bin_name, "data_" + str(ibin))
 
+#        if lumi!=lumiTemplate:
+#            hist_minus_full.Scale(lumi/lumiTemplate)
+#            hist_plus_full.Scale(lumi/lumiTemplate)
+
+
         if rebin > 1:
             hist_minus.Rebin(rebin)
             hist_plus.Rebin(rebin)
@@ -278,7 +287,8 @@ def main(filename, filenameData,nBins=50, rebin=1, outdir="plots_pol", lumi=67.7
             hist_minus,
             hist_plus,
             use_likelihood=use_likelihood,
-            print_level=print_level
+            print_level=print_level,
+            scale0=lumi/lumiTemplate
         )
 
         vectorPol[ibin] = pol
@@ -494,7 +504,9 @@ if __name__ == "__main__":
     parser.add_argument("--chi2", action="store_true", help="Use chi2 instead of binned Poisson likelihood for omega fits")
     parser.add_argument("--print-level", type=int, default=1, help="TMinuit print level")
     parser.add_argument("-o", "--outdir", default="plots_pol")
+
     parser.add_argument("-l", "--lumi", type=float, default=67.7)
+    parser.add_argument("-lt", "--lumiTemplate", type=float, default=67.7)
 
 
     args = parser.parse_args()
@@ -507,6 +519,8 @@ if __name__ == "__main__":
         outdir=args.outdir,
         use_likelihood=not args.chi2,
         print_level=args.print_level,
-        lumi=args.lumi
+        lumi=args.lumi,
+        lumiTemplate=args.lumiTemplate,
+
     )
 
