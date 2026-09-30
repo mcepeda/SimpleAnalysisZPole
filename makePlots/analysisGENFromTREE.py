@@ -5,6 +5,7 @@ from ROOT import TFile, TTree, TH1F, TH2F
 import numpy as np
 from pathlib import Path
 import ctypes
+import glob
 
 import argparse
 parser = argparse.ArgumentParser(
@@ -31,8 +32,23 @@ filename = args.sample
 outfilename = args.outfile
 
 
-f = TFile.Open(filename)
-tree=f.Get("outtree")
+#f = TFile.Open(filename)
+#tree=f.Get("outtree")
+
+files = sorted(glob.glob(args.sample))
+
+if len(files) == 0:
+    raise RuntimeError("No files found matching: %s" % args.sample)
+
+tree = ROOT.TChain("outtree")
+
+for filename in files:
+    tree.Add(filename)
+
+print("Read %d files" % len(files))
+print("Total entries: %d" % tree.GetEntries())
+
+
 
 outfile = TFile.Open(outfilename, "RECREATE")
 
@@ -132,7 +148,54 @@ for charge in ["TAUMINUS", "TAUPLUS"]:
         add1(f"GENFZFine_FW{tag}_{charge}", 1000, 0, 0.5)
 
 
+def make_fz_edges(nfz):
+    """Variable fz bins obtained from uniform |z| bins; much finer close to fz=0.5."""
+    return array('d', [(i / float(nfz)) / (1.0 + (i / float(nfz))**2) for i in range(nfz + 1)])
 
+
+def book_afbpol_histograms(h, nomega=100, omega_min=-1.0, omega_max=1.0, nz=100, nfz=500,
+                           samples=("TAUMINUS", "P1_TAUMINUS", "M1_TAUMINUS")):
+    fz_edges = make_fz_edges(nfz)
+    for angle in ("Simple", "Hat"):
+        for sample in samples:
+            name_z = "GENZ%s_%s" % (angle, sample)
+            h[name_z] = ROOT.TH1F(name_z, name_z, nz, -1.0, 1.0)
+            h[name_z].Sumw2()
+            for region in ("FW", "BW"):
+                name_fz = "GENFZ%s_%s_%s" % (angle, region, sample)
+                name_2d = "GENOmegaFZ%s_%s_%s" % (angle, region, sample)
+                h[name_fz] = ROOT.TH1F(name_fz, name_fz, nfz, fz_edges)
+                h[name_2d] = ROOT.TH2F(name_2d, name_2d, nomega, omega_min, omega_max, nfz, fz_edges)
+                h[name_fz].Sumw2()
+                h[name_2d].Sumw2()
+
+book_afbpol_histograms(h)
+
+def _fill_one_angle(h, angle, z, omega, weights):
+    if not math.isfinite(z) or abs(z) > 1.000001:
+        return
+
+    absz = abs(z)
+    fz = absz / (1.0 + absz * absz)
+
+    if z > 0:
+        region = "FW"
+    elif z < 0:
+        region = "BW"
+    else:
+        print("z==0? skipping event")
+        return
+
+    for sample, weight in weights.items():
+        h["GENZ%s_%s" % (angle, sample)].Fill(z, weight)
+        h["GENFZ%s_%s_%s" % (angle, region, sample)].Fill(fz, weight)
+        h["GENOmegaFZ%s_%s_%s" % (angle, region, sample)].Fill(omega, fz, weight)
+
+
+def fill_afbpol_histograms(h, omega_minus, cos_theta_tau_minus, cos_theta_hat, w_p1, w_m1):
+    weights = {"TAUMINUS": 1.0, "P1_TAUMINUS": w_p1, "M1_TAUMINUS": w_m1}
+    _fill_one_angle(h, "Simple", cos_theta_tau_minus, omega_minus, weights)
+    _fill_one_angle(h, "Hat", cos_theta_hat, omega_minus, weights)
 
 
 
@@ -161,6 +224,9 @@ sumWeightsP1=0
 sumWeightsM1=0
 sumWeights=0
 
+
+
+
 for ev in tree:
 
     if totalEvents % 100000 == 0:
@@ -188,55 +254,58 @@ for ev in tree:
     wP1 = ev.weight_P1_joint #weights from olmo
     wM1 = ev.weight_M1_joint
 
-#    wP1 = ev.weight_P1_plus * ev.weight_P1_minus
-#    wM1 = ev.weight_M1_plus * ev.weight_M1_minus
+#    wP1 = ev.weight_P1_corrangle 
+#    wM1 = ev.weight_M1_corrangle
 
-    AeSM=0.1472 # 0.1498  #0.1472
-    AtauSM=AeSM
-    New_Atau=1
-    New_Ae= AeSM # New_Atau # AeSM
-    New_AtauM1=-1
-    New_AeM1= AeSM # New_AtauM1 # AeSM
-    AFBSM = 3/4 * AeSM * AtauSM
-    AFBP1 = 3/4 * New_Ae  * New_Atau    # = 3/4
-    AFBM1 = 3/4 * New_AeM1 * New_AtauM1 # = 3/4 * (-1)*(-1) = 3/4 
 
-    Z=math.cos(ev.genTauTheta_minus) # this is the theta of the Tau, not the meson 
 
-    cosThetaHat =  math.sin ( (ev.genTauTheta_plus-ev.genTauTheta_minus)/2 )/math.sin ( (ev.genTauTheta_minus+ev.genTauTheta_plus)/2 ) 
-
+    Z=math.cos(ev.genTauTheta_minus) # this is the theta of the Tau, not the meson
+    cosThetaHat =  math.sin ( (ev.genTauTheta_plus-ev.genTauTheta_minus)/2 )/math.sin ( (ev.genTauTheta_minus+ev.genTauTheta_plus)/2 )
     cosThetaMeson=math.cos(ev.genMesonTheta_minus)
-
-#    Z=cosThetaHat
-
     z =  Z # cosThetaHat # cosTheta
     absz=abs(z)
     fz=absz/(1+absz*absz)
     signZ = +1 if z > 0 else -1
 
+
+# IN CASE YOU WANT TO REDO THE WEIGHTS WITHOUT RERUNNING THE TREE  
+
+#    AeSM=0.1472 # 0.1498  #0.1472
+#    AtauSM=AeSM
+#    New_Atau=1
+#    New_Ae= AeSM # New_Atau # AeSM
+#    New_AtauM1=-1
+#    New_AeM1= AeSM # New_AtauM1 # AeSM
+#    AFBSM = 3/4 * AeSM * AtauSM
+#    AFBP1 = 3/4 * New_Ae  * New_Atau    # = 3/4
+#    AFBM1 = 3/4 * New_AeM1 * New_AtauM1 # = 3/4 * (-1)*(-1) = 3/4 
+
+#    z =  Z # cosThetaHat # cosTheta
+#    absz=abs(z)
+#    fz=absz/(1+absz*absz)
+#    signZ = +1 if z > 0 else -1
+
 #    New_AeM1=-1
 #    New_Ae=1
 
-    PtauSM= - (AtauSM * (1+  Z*Z) + 2*AeSM*Z) / (1+Z*Z + 2*AeSM*AtauSM*Z)
-    PtauP1 = - ( New_Atau   * (1+  Z*Z) + 2*New_Ae*Z) / (1+Z*Z + 2*New_Ae* New_Atau *Z)
-    PtauM1 = - ( New_AtauM1   * (1+  Z*Z) + 2*New_AeM1*Z) / (1+Z*Z + 2*New_AeM1* New_AtauM1 *Z)
+#    PtauSM= - (AtauSM * (1+  Z*Z) + 2*AeSM*Z) / (1+Z*Z + 2*AeSM*AtauSM*Z)
+#    PtauP1 = - ( New_Atau   * (1+  Z*Z) + 2*New_Ae*Z) / (1+Z*Z + 2*New_Ae* New_Atau *Z)
+#    PtauM1 = - ( New_AtauM1   * (1+  Z*Z) + 2*New_AeM1*Z) / (1+Z*Z + 2*New_AeM1* New_AtauM1 *Z)
 
-    angularSM = (3/8*(1 + Z*Z) + AFBSM * Z)
-    angularP1 = (3/8*(1 + Z*Z) + AFBP1 * Z)
-    angularM1 = (3/8*(1 + Z*Z) + AFBM1 * Z)
+#    angularSM = (3/8*(1 + Z*Z) + AFBSM * Z)
+#    angularP1 = (3/8*(1 + Z*Z) + AFBP1 * Z)
+#    angularM1 = (3/8*(1 + Z*Z) + AFBM1 * Z)
 
-    decaySM = (1 + PtauSM * (ev.gen_w_plus + ev.gen_w_minus) + ev.gen_w_plus * ev.gen_w_minus)
-    decayP1 = (1 + PtauP1 * (ev.gen_w_plus + ev.gen_w_minus) + ev.gen_w_plus * ev.gen_w_minus)
-    decayM1 = (1 + PtauM1 * (ev.gen_w_plus + ev.gen_w_minus) + ev.gen_w_plus * ev.gen_w_minus)
+#    decaySM = (1 + PtauSM * (ev.gen_w_plus + ev.gen_w_minus) + ev.gen_w_plus * ev.gen_w_minus)
+#    decayP1 = (1 + PtauP1 * (ev.gen_w_plus + ev.gen_w_minus) + ev.gen_w_plus * ev.gen_w_minus)
+#    decayM1 = (1 + PtauM1 * (ev.gen_w_plus + ev.gen_w_minus) + ev.gen_w_plus * ev.gen_w_minus)
 
-    denW         = angularSM * decaySM
-    weightTestP1 = (angularP1 * decayP1) / denW
-    weightTestM1 = (angularM1 * decayM1) / denW 
+#    denW         = angularSM * decaySM
+#    weightTestP1 = (angularP1 * decayP1) / denW
+#    weightTestM1 = (angularM1 * decayM1) / denW 
 
-
-    weightTestP1DECAY =  decayP1 /decaySM
-    weightTestM1DECAY =  decayM1 /decaySM
-
+#    weightTestP1DECAY =  decayP1 /decaySM
+#    weightTestM1DECAY =  decayM1 /decaySM
 
 #    print (ev.weight_M1_joint, ev.weight_M1_corrangle, weightTestM1DECAY, weightTestM1)
 
@@ -297,6 +366,18 @@ for ev in tree:
     h[f"GENCosThetaHatVsSimple"].Fill(cosThetaHat,math.cos(ev.genTauTheta_minus))
 
 
+    omega_minus = ev.gen_w_minus
+
+    z_simple = math.cos(ev.genTauTheta_minus)
+    z_hat    = cosThetaHat 
+
+#    w_p1=ev.weight_P1_joint # or event.weight_P1_corrangle 
+#    w_m1=ev.weight_M1_joint  
+ 
+    fill_afbpol_histograms(h,omega_minus,z_simple,z_hat,wP1,wM1)
+
+
+
 #    if Z_total.M()<91.1 or Z_total.M()>91.2:
 #    if Z_total.M()<89. or Z_total.M()>90.5:
 #         continue
@@ -308,57 +389,57 @@ for ev in tree:
 #        continue
 
 
-#    h[f"GENNPhoton"].Fill(ev.nPhotons)
-#    photonSumE=0
-#
-#    photonSUMP4 = build_p4(0,0,0,0)
-#    leadSUMP4 = build_p4(0,0,0,0)
-#
-#
-#    if ev.nPhotons>0:
-#       photon = build_p4(ev.genPhotonP, ev.genPhotonTheta,  ev.genPhotonPhi,0)
-#
-#       #if photon.E()<0.1:
-#       # continue
-#   
-#       photonSUMP4+=photon
-#     
-#       if leadSUMP4.E()<photon.E():
-#          leadSUMP4=photon
-#
-#       dRZPhoton = dRAngle(photon,Z_total)
-#       dRPhotonTauP=dRAngle(photon,tau_plus)
-#       dRPhotonTauM=dRAngle(photon,tau_minus)
-#       h[f"GENPhotonP"].Fill(ev.genPhotonP)
-#       h[f"GENPhotonMom"].Fill(ev.genPhotonMom)
-#       if (abs(ev.genPhotonMom)==11):
-#           h[f"GENPhotonPISR"].Fill(ev.genPhotonP)   
-#           h[f"GENPhotonDRISR"].Fill(dRZPhoton)
-#           h[f"GENPhotonPDRISR"].Fill(ev.genPhotonP,dRZPhoton)
-#       elif (abs(ev.genPhotonMom)==15):
-#           h[f"GENPhotonDRFSR"].Fill(dRZPhoton)  
-#           h[f"GENPhotonPFSR"].Fill(ev.genPhotonP)   
-#           h[f"GENPhotonPDRFSR"].Fill(ev.genPhotonP,dRZPhoton)
-#       h[f"GENPhotonDRTau1"].Fill(dRZPhoton)
-#       h[f"GENPhotonDRTau2"].Fill(dRZPhoton)
-#       h[f"GENPhotonDR"].Fill(dRZPhoton)
-#       photonSumE+=photon.E()
+    h[f"GENNPhoton"].Fill(ev.nPhotons)
+    photonSumE=0
+
+    photonSUMP4 = build_p4(0,0,0,0)
+    leadSUMP4 = build_p4(0,0,0,0)
+
+
+    if ev.nPhotons>0:
+       photon = build_p4(ev.genPhotonP, ev.genPhotonTheta,  ev.genPhotonPhi,0)
+
+       #if photon.E()<0.1:
+       # continue
+   
+       photonSUMP4+=photon
+     
+       if leadSUMP4.E()<photon.E():
+          leadSUMP4=photon
+
+       dRZPhoton = dRAngle(photon,Z_total)
+       dRPhotonTauP=dRAngle(photon,tau_plus)
+       dRPhotonTauM=dRAngle(photon,tau_minus)
+       h[f"GENPhotonP"].Fill(ev.genPhotonP)
+       h[f"GENPhotonMom"].Fill(ev.genPhotonMom)
+       if (abs(ev.genPhotonMom)==11):
+           h[f"GENPhotonPISR"].Fill(ev.genPhotonP)   
+           h[f"GENPhotonDRISR"].Fill(dRZPhoton)
+           h[f"GENPhotonPDRISR"].Fill(ev.genPhotonP,dRZPhoton)
+       elif (abs(ev.genPhotonMom)==15):
+           h[f"GENPhotonDRFSR"].Fill(dRZPhoton)  
+           h[f"GENPhotonPFSR"].Fill(ev.genPhotonP)   
+           h[f"GENPhotonPDRFSR"].Fill(ev.genPhotonP,dRZPhoton)
+       h[f"GENPhotonDRTau1"].Fill(dRZPhoton)
+       h[f"GENPhotonDRTau2"].Fill(dRZPhoton)
+       h[f"GENPhotonDR"].Fill(dRZPhoton)
+       photonSumE+=photon.E()
 #
 ##    if photonSumE> 5:
 ##       continue 
 #
-#    h[f"GENSumPhotonE"].Fill(photonSumE)
-#
-#    totalP4 = ROOT.TLorentzVector() 
-#    totalP4.SetPxPyPzE(0.0, 0.0, 0.0, 91.188)    
-#    recoil = totalP4-photonSUMP4
-#
-#    mtautauRecoil=recoil.M()
-#
-#    mtautauRecoil2=math.sqrt( max(0,91.188*91.188-2*91.188*leadSUMP4.E()) )
-#
-#    h[f"GENZRecoil"].Fill(mtautauRecoil)
-#    h[f"GENZRecoil2"].Fill(mtautauRecoil2)
+    h[f"GENSumPhotonE"].Fill(photonSumE)
+
+    totalP4 = ROOT.TLorentzVector() 
+    totalP4.SetPxPyPzE(0.0, 0.0, 0.0, 91.188)    
+    recoil = totalP4-photonSUMP4
+
+    mtautauRecoil=recoil.M()
+
+    mtautauRecoil2=math.sqrt( max(0,91.188*91.188-2*91.188*leadSUMP4.E()) )
+
+    h[f"GENZRecoil"].Fill(mtautauRecoil)
+    h[f"GENZRecoil2"].Fill(mtautauRecoil2)
 
    
     #print (Z_total.M(),sqrtCorr,mtautauRecoil,mtautauRecoil2,leadSUMP4.E(),photonSUMP4.E())
