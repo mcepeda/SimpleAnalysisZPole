@@ -1,155 +1,185 @@
-#!/usr/bin/env python
-import ROOT 
-from ROOT import TH1F,TFile
+#!/usr/bin/env python3
 
+import argparse
+import os
+import ROOT
+
+ROOT.gROOT.SetBatch(True)
 ROOT.gStyle.SetOptStat(0)
 
-MESON="#rho (2#gamma)"
-cuts="GEN" #2_0.1_2"
-
-file=TFile("../makePlots/histos_PY8GENWI23_test_changeAtau_dm1_1472_ONLYDECAYWEIGHT.root")
-fileOut=TFile("BINED_templates_PY8WI23_GEN_LONG.root","RECREATE")
-NGEN=100e6
-
-#file=TFile("../makePlots/histos_PY8GENNOISR_test_changeAtau_dm1_1472_WO_NOISRFSR.root")
-#fileOut=TFile("BINED_templates_PY8_GEN_2M_NOISRFSR.root","RECREATE")
-#NGEN=2e6
-
-#file=TFile("../makePlots/histos_KKMCee_changeAtau_dm1_1472_WO.root")
-#fileOut=TFile("BINED_templates_KKMCee_GEN_LONG.root","RECREATE")
-#NGEN=10e6
-
-xsec=1476.58*1000 # en fb
-lumi=NGEN/xsec/ 1000. # 17 ab-1
-scale= 1 # lumi*xsec/NGEN
-
-print ("LUMI: ", lumi*1000) 
-
-#var="GENOmegaCosThetaMeson"
-#var="GENOmegaCosTheta"
-var="GENOmegaCosThetaHat"
-
-title="#omega_{#rho}"
-
-rebin=1
-
-#sample=["TAUMINUS","PosHel_TAUMINUS","NegHel_TAUMINUS"]
-sample=["TAUMINUS","P1_TAUMINUS","M1_TAUMINUS"]
-#sample2=["TAUPLUS","P1_TAUPLUS","M1_TAUPLUS"]
-color=[ROOT.kBlack,ROOT.kGreen+2,ROOT.kRed]
-sampleName=["SM","A_{#tau}=+1","A_{#tau}=-1"]
-
-nBins=20  
-binLength=100/nBins
-
-for bin in range(0,nBins):
-
-  print ("Hey!")
-
-  c=ROOT.TCanvas("canvas","",800,800)
-  leg=ROOT.TLegend(0.5,0.89,0.9,0.6)
-  leg.SetFillStyle(0)
-  leg.SetLineColor(0)
-  leg.SetLineWidth(0)
-
-  
-  binIni=int(bin*binLength+1)
-  binEnd=int((bin+1)*binLength)
-  print (bin,binIni,binEnd)
-
-  maxY=0
-
-  histo_bin={}
-
-  for i in range(0,len(sample)):
-    print (var+"_"+sample[i])
-    histo2D=file.Get(var+"_"+sample[i])
-#    histo2D_2=file.Get(var+"_"+sample2[i])
-#    histo2D.Add(histo2D_2)
-    print ("histo_"+sample[i]+"_"+str(bin)) 
-    histo_bin[i]=histo2D.ProjectionX("histo_"+sample[i]+"_"+str(bin),binIni,binEnd)
-    histo_bin[i].Rebin(rebin)
-    histo_bin[i].Scale(scale)
-    histo_bin[i].SetXTitle(title)  
-    histo_bin[i].SetLineWidth(2)
-    histo_bin[i].SetLineColor(color[i])
-
-    if sample[i]=="BG":
-      histo_bin[i].SetFillColor(color[i])
-      #histo_bin[i].SetFillStyle(3004)
-      leg.AddEntry(histo_bin[i],sampleName[i],"f")
-    else: 
-      leg.AddEntry(histo_bin[i],sampleName[i],"l")
-
-    print("Integral: ",sampleName, histo_bin[i].Integral())
-
-    if maxY<histo_bin[i].GetMaximum():
-      maxY=histo_bin[i].GetMaximum()
-      
-    if i==0:
-      histo_bin[i].Draw("hist")
-    else:
-      histo_bin[i].Draw("hist,same")
-
-  histo_bin[0].SetMaximum(maxY*1.2)
-  leg.Draw()
-  c.Draw()
-  c.SaveAs("BINS/BIN_"+var+"_"+cuts+"_"+str(binIni)+"_"+str(binEnd)+".png")
-
-  fileOut.cd()
-  for i in range(0,len(sample)):
-    histo_bin[i].Write()
-  
-  print ("oh?")
+SAMPLES = [
+    ("TAUMINUS", "SM", ROOT.kBlack),
+    ("P1_TAUMINUS", "A_{#tau}=+1", ROOT.kGreen + 2),
+    ("M1_TAUMINUS", "A_{#tau}=-1", ROOT.kRed),
+]
 
 
-# Also for the full range
-c = ROOT.TCanvas("canvas_full", "", 800, 800)
-leg = ROOT.TLegend(0.5, 0.89, 0.9, 0.6)
-leg.SetFillStyle(0)
-leg.SetLineColor(0)
-leg.SetLineWidth(0)
-
-maxY = 0
-
-histo_full = {}
-
-for i in range(0, len(sample)):
-
-  histo2D = file.Get(var + "_" + sample[i])
-  print("histo_" + sample[i] + "_full")
-  histo_full[i] = histo2D.ProjectionX("histo_" + sample[i] + "_full", 1, 100)
-  histo_full[i].Rebin(rebin)
-  histo_full[i].Scale(scale)
-  histo_full[i].SetXTitle(title)
-  histo_full[i].SetLineWidth(2)
-  histo_full[i].SetLineColor(color[i])
-
-  if sample[i] == "BG":
-    histo_full[i].SetFillColor(color[i])
-    # histo_full[i].SetFillStyle(3004)
-    leg.AddEntry(histo_full[i], sampleName[i], "f")
-  else:
-    leg.AddEntry(histo_full[i], sampleName[i], "l")
-
-  print("Integral: ", sampleName, histo_full[i].Integral())
-
-  if maxY < histo_full[i].GetMaximum():
-    maxY = histo_full[i].GetMaximum()
-
-  if i == 0:
-    histo_full[i].Draw("hist")
-  else:
-    histo_full[i].Draw("hist,same")
-
-histo_full[0].SetMaximum(maxY * 1.2)
-leg.Draw()
-c.Draw()
-c.SaveAs("BINS/BIN_" + var + "_" + cuts + "_full.png")
-
-fileOut.cd()
-for i in range(0, len(sample)):
-  histo_full[i].Write()
+def get_hist2d(root_file, name):
+    hist = root_file.Get(name)
+    if not hist:
+        raise RuntimeError("Missing histogram: " + name)
+    return hist
 
 
-file.Close()
+def main(input_file, output_file, variable, nBins=20, rebin=1, plot_dir="BINS", make_plots=True):
+
+    fin = ROOT.TFile.Open(input_file)
+    if not fin or fin.IsZombie():
+        raise RuntimeError("Cannot open input file: " + input_file)
+
+    first = get_hist2d(fin, variable + "_" + SAMPLES[0][0])
+    nY = first.GetNbinsY()
+
+    if nY % nBins != 0:
+        raise RuntimeError("Y axis has %d bins, not divisible by nBins=%d" % (nY, nBins))
+
+    ybins_per_output_bin = nY // nBins
+
+    fout = ROOT.TFile(output_file, "RECREATE")
+    if not fout or fout.IsZombie():
+        raise RuntimeError("Cannot create output file: " + output_file)
+
+    if make_plots:
+        os.makedirs(plot_dir, exist_ok=True)
+
+    print("============================================================")
+    print("Input      :", input_file)
+    print("Output     :", output_file)
+    print("Variable   :", variable)
+    print("Y bins     :", nY)
+    print("Output bins:", nBins)
+    print("Y/bin      :", ybins_per_output_bin)
+    print("Omega rebin:", rebin)
+    print("============================================================")
+
+    # --------------------------------------------------------
+    # Angular bins
+    # --------------------------------------------------------
+
+    for ibin in range(nBins):
+
+        bin_ini = ibin*ybins_per_output_bin + 1
+        bin_end = (ibin + 1)*ybins_per_output_bin
+
+        print("Angular bin %d: Y bins %d -> %d" % (ibin, bin_ini, bin_end))
+
+        projected = []
+        max_y = 0.0
+
+        if make_plots:
+            canvas = ROOT.TCanvas("canvas_%d" % ibin, "", 800, 800)
+            legend = ROOT.TLegend(0.52, 0.66, 0.90, 0.89)
+            legend.SetFillStyle(0)
+            legend.SetLineColor(0)
+            legend.SetLineWidth(0)
+
+        for sample_tag, sample_label, color in SAMPLES:
+
+            hist2d = get_hist2d(fin, variable + "_" + sample_tag)
+            hist = hist2d.ProjectionX("histo_%s_%d" % (sample_tag, ibin), bin_ini, bin_end)
+            hist.SetDirectory(0)
+
+            if rebin > 1:
+                hist.Rebin(rebin)
+
+            hist.SetXTitle("#omega_{#rho}")
+            hist.SetLineWidth(2)
+            hist.SetLineColor(color)
+
+            projected.append(hist)
+
+            print("  %-16s integral = %.6f" % (sample_tag, hist.Integral()))
+
+            if make_plots:
+                max_y = max(max_y, hist.GetMaximum())
+                legend.AddEntry(hist, sample_label, "l")
+
+        if make_plots:
+            projected[0].SetMaximum(1.2*max_y)
+            projected[0].Draw("hist")
+
+            for hist in projected[1:]:
+                hist.Draw("hist same")
+
+            legend.Draw()
+            canvas.SaveAs(os.path.join(plot_dir, "%s_bin_%02d.png" % (variable, ibin)))
+            canvas.Close()
+
+        fout.cd()
+        for hist in projected:
+            hist.Write()
+
+    # --------------------------------------------------------
+    # Full angular range
+    # --------------------------------------------------------
+
+    print("Full range: Y bins 1 -> %d" % nY)
+
+    projected = []
+    max_y = 0.0
+
+    if make_plots:
+        canvas = ROOT.TCanvas("canvas_full", "", 800, 800)
+        legend = ROOT.TLegend(0.52, 0.66, 0.90, 0.89)
+        legend.SetFillStyle(0)
+        legend.SetLineColor(0)
+        legend.SetLineWidth(0)
+
+    for sample_tag, sample_label, color in SAMPLES:
+
+        hist2d = get_hist2d(fin, variable + "_" + sample_tag)
+        hist = hist2d.ProjectionX("histo_%s_full" % sample_tag, 1, nY)
+        hist.SetDirectory(0)
+
+        if rebin > 1:
+            hist.Rebin(rebin)
+
+        hist.SetXTitle("#omega_{#rho}")
+        hist.SetLineWidth(2)
+        hist.SetLineColor(color)
+
+        projected.append(hist)
+
+        print("  %-16s integral = %.6f" % (sample_tag, hist.Integral()))
+
+        if make_plots:
+            max_y = max(max_y, hist.GetMaximum())
+            legend.AddEntry(hist, sample_label, "l")
+
+    if make_plots:
+        projected[0].SetMaximum(1.2*max_y)
+        projected[0].Draw("hist")
+
+        for hist in projected[1:]:
+            hist.Draw("hist same")
+
+        legend.Draw()
+        canvas.SaveAs(os.path.join(plot_dir, "%s_full.png" % variable))
+        canvas.Close()
+
+    fout.cd()
+    for hist in projected:
+        hist.Write()
+
+    fout.Close()
+    fin.Close()
+
+    print("Wrote:", output_file)
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Project omega histograms in cos(theta) bins")
+
+    parser.add_argument("-i", "--input", required=True, help="Input ROOT file")
+    parser.add_argument("-o", "--output", required=True, help="Output ROOT file")
+    parser.add_argument("-v", "--variable", default="GENOmegaCosThetaHat", help="2D variable")
+    parser.add_argument("--nBins", type=int, default=20, help="Number of cos(theta) bins")
+    parser.add_argument("--rebin", type=int, default=1, help="Rebin factor for omega axis")
+    parser.add_argument("--plot-dir", default="BINS", help="Directory for diagnostic plots")
+    parser.add_argument("--no-plots", action="store_true", help="Do not make projection plots")
+
+    args = parser.parse_args()
+
+    main(args.input, args.output, args.variable, args.nBins, args.rebin, args.plot_dir, not args.no_plots)
+
